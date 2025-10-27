@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TryScape - See Yourself Anywhere</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌍 TryScape</h1>
+            <p class="tagline">See yourself in any outfit, anywhere</p>
+        </header>
+
+        <main>
+            <div class="card">
+                <h2>Generate Your TryScape</h2>
+                <form id="tryscape-form" enctype="multipart/form-data">
+                    <div class="form-section">
+                        <h3>📸 Your Photo</h3>
+                        <div class="file-input-wrapper">
+                            <label for="user_image" class="file-label">
+                                <span class="file-button">Choose Photo</span>
+                                <span id="user-filename" class="file-name">No file chosen</span>
+                            </label>
+                            <input type="file" id="user_image" name="user_image" accept="image/*" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="user_description">Describe yourself (optional):</label>
+                            <input type="text" id="user_description" name="user_description" 
+                                   placeholder="e.g., young adult with brown hair">
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>👔 Clothing</h3>
+                        <div class="file-input-wrapper">
+                            <label for="clothing_image" class="file-label">
+                                <span class="file-button">Choose Clothing Image</span>
+                                <span id="clothing-filename" class="file-name">No file chosen (optional)</span>
+                            </label>
+                            <input type="file" id="clothing_image" name="clothing_image" accept="image/*">
+                        </div>
+                        <div class="input-group">
+                            <label for="clothing_description">Describe the outfit:</label>
+                            <input type="text" id="clothing_description" name="clothing_description" 
+                                   placeholder="e.g., blue denim jacket and white t-shirt" required>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>📍 Location</h3>
+                        <div class="input-group">
+                            <label for="location_description">Describe the location:</label>
+                            <input type="text" id="location_description" name="location_description" 
+                                   placeholder="e.g., Eiffel Tower in Paris, sunset" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="generate-btn" class="btn-primary">
+                        ✨ Generate TryScape
+                    </button>
+                </form>
+            </div>
+
+            <div id="loading" class="loading-overlay" style="display: none;">
+                <div class="loading-content">
+                    <div class="spinner"></div>
+                    <p>Generating your TryScape...</p>
+                    <p class="loading-subtext">This may take 10-30 seconds</p>
+                </div>
+            </div>
+
+            <div id="result" class="card result-card" style="display: none;">
+                <h2>Your TryScape</h2>
+                <div class="result-image-container">
+                    <img id="generated-image" src="" alt="Generated TryScape">
+                </div>
+                <button id="new-generation-btn" class="btn-secondary">
+                    Create Another TryScape
+                </button>
+            </div>
+
+            <div id="error" class="error-message" style="display: none;">
+                <p id="error-text"></p>
+                <button id="dismiss-error-btn" class="btn-secondary">Dismiss</button>
+            </div>
+        </main>
+
+        <footer>
+            <p>Powered by Azure OpenAI</p>
+            <p class="disclaimer">Generated images are AI-created and may not be perfectly accurate</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
