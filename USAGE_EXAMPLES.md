@@ -26,7 +26,7 @@ This document provides examples of how to use the TryScape application.
 **Use Case**: You want to see how you'd look in casual beachwear at a tropical destination
 
 **Input**:
-- User Description: "person with long dark hair"
+- User Description: "young woman with shoulder-length dark brown hair"
 - Clothing Description: "white linen shirt and khaki shorts"
 - Location Description: "tropical beach in Maldives with turquoise water and white sand"
 
@@ -125,7 +125,7 @@ print(response.json())
 
 - Generated images are AI-created and may not perfectly match reality
 - The AI interprets descriptions, so results may vary
-- Processing takes 10-30 seconds per image
+- Processing typically takes 15-45 seconds per image depending on complexity
 - Quality depends on input image quality and description detail
 - Some complex scenarios may not generate perfectly
 

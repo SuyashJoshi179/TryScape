@@ -117,7 +117,8 @@ def create_app():
             
         except Exception as e:
             print(f"Error in generate_image: {e}")
-            return jsonify({'error': f'Internal server error: {str(e)}'}), 500
+            # Don't expose internal error details to users
+            return jsonify({'error': 'An error occurred while generating the image. Please try again.'}), 500
     
     @app.route('/health')
     def health():

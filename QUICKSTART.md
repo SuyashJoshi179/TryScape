@@ -124,7 +124,7 @@ If you don't have Azure OpenAI set up yet:
 
 2. **Request Azure OpenAI Access**:
    - Go to [Azure OpenAI Access Request](https://aka.ms/oai/access)
-   - Fill out the form and wait for approval (usually 1-2 business days)
+   - Fill out the form and wait for approval (timeframe varies)
 
 3. **Create Azure OpenAI Resource**:
    - In Azure Portal, click "Create a resource"
