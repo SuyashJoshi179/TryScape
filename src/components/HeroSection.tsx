@@ -1,15 +1,12 @@
 'use client';
 
 import React from 'react';
-import { Box, Container, Typography, Grid, useTheme, useMediaQuery } from '@mui/material';
+import { Box, Container, Typography, Grid } from '@mui/material';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import Button from '@mui/material/Button';
 
 export default function HeroSection() {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
   return (
     <Box
       id="home"
