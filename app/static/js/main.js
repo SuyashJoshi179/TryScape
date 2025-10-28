@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const loadingOverlay = document.getElementById('loading');
     const resultCard = document.getElementById('result');
     const generatedImage = document.getElementById('generated-image');
+    const generatedVideo = document.getElementById('generated-video');
     const errorDiv = document.getElementById('error');
     const errorText = document.getElementById('error-text');
     const newGenerationBtn = document.getElementById('new-generation-btn');
@@ -61,14 +62,23 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
 
             if (response.ok && data.success) {
-                // Show generated image
-                generatedImage.src = data.generated_image_url;
+                // Show generated media (image or video)
+                if (data.media_type === 'video') {
+                    generatedVideo.querySelector('source').src = data.generated_media_url;
+                    generatedVideo.load();
+                    generatedVideo.style.display = 'block';
+                    generatedImage.style.display = 'none';
+                } else {
+                    generatedImage.src = data.generated_media_url;
+                    generatedImage.style.display = 'block';
+                    generatedVideo.style.display = 'none';
+                }
                 resultCard.style.display = 'block';
                 
                 // Scroll to result
                 resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             } else {
-                showError(data.error || 'Failed to generate image. Please try again.');
+                showError(data.error || 'Failed to generate. Please try again.');
             }
         } catch (error) {
             console.error('Error:', error);

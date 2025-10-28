@@ -18,7 +18,7 @@ This document provides examples of how to use the TryScape application.
    - **Describe the Outfit**: Describe the clothing (e.g., "blue denim jacket and white t-shirt")
    - **Describe the Location**: Specify the location (e.g., "Eiffel Tower in Paris at sunset")
 
-4. Click "Generate TryScape" and wait 10-30 seconds for the AI to generate your image
+4. Click "Generate TryScape" and wait 60-120 seconds for the AI to edit your image with the desired outfit and location
 
 ## Example Scenarios
 
@@ -124,10 +124,11 @@ print(response.json())
 ## Limitations
 
 - Generated images are AI-created and may not perfectly match reality
-- The AI interprets descriptions, so results may vary
-- Processing typically takes 15-45 seconds per image depending on complexity
+- The AI interprets descriptions and edits your photo, so results may vary
+- Processing typically takes 60-120 seconds per image
 - Quality depends on input image quality and description detail
 - Some complex scenarios may not generate perfectly
+- The gpt-image-1 model uses image editing rather than pure generation, requiring an uploaded photo
 
 ## Cost Management
 
@@ -140,7 +141,7 @@ Each image generation uses Azure OpenAI credits. To manage costs:
 ## Troubleshooting
 
 ### Image Generation Takes Too Long
-- This is normal; DALL-E 3 typically takes 10-30 seconds
+- This is normal; gpt-image-1 typically takes 60-120 seconds
 - Check your internet connection
 - Verify Azure OpenAI service is operational
 

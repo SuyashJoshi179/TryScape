@@ -29,7 +29,7 @@ def create_app():
     @app.route('/')
     def index():
         """Render the main page."""
-        return render_template('index.html')
+        return render_template('index.html', enable_sora=Config.ENABLE_SORA)
     
     @app.route('/generate', methods=['POST'])
     def generate_image():
@@ -90,28 +90,44 @@ def create_app():
             user_description = request.form.get('user_description', 'a person')
             clothing_description = request.form.get('clothing_description', 'casual outfit')
             location_description = request.form.get('location_description', 'outdoor setting')
+            generation_type = request.form.get('generation_type', 'image')  # 'image' or 'video'
             
-            # Generate image using Azure OpenAI
-            image_url = azure_service.generate_tryscape_image(
-                user_description=user_description,
-                clothing_description=clothing_description,
-                location_description=location_description
-            )
+            # Check if SORA is enabled when video is requested
+            if generation_type == 'video' and not Config.ENABLE_SORA:
+                return jsonify({'error': 'Video generation is not enabled'}), 400
             
-            if not image_url:
-                return jsonify({'error': 'Failed to generate image'}), 500
+            # Generate image or video using Azure OpenAI
+            if generation_type == 'video':
+                media_url = azure_service.generate_tryscape_video(
+                    user_description=user_description,
+                    clothing_description=clothing_description,
+                    location_description=location_description
+                )
+                file_extension = 'mp4'
+            else:
+                media_url = azure_service.generate_tryscape_image(
+                    user_image_path=user_image_path,  # Pass the uploaded image path
+                    user_description=user_description,
+                    clothing_description=clothing_description,
+                    location_description=location_description
+                )
+                file_extension = 'png'
             
-            # Download generated image
-            generated_filename = f"generated_{uuid.uuid4().hex}.png"
+            if not media_url:
+                return jsonify({'error': 'Failed to generate ' + generation_type}), 500
+            
+            # Download generated media
+            generated_filename = f"generated_{uuid.uuid4().hex}.{file_extension}"
             generated_path = os.path.join(Config.GENERATED_FOLDER, generated_filename)
             
-            if not azure_service.download_image(image_url, generated_path):
-                return jsonify({'error': 'Failed to download generated image'}), 500
+            if not azure_service.download_image(media_url, generated_path):
+                return jsonify({'error': 'Failed to download generated ' + generation_type}), 500
             
             # Return success response
             return jsonify({
                 'success': True,
-                'generated_image_url': url_for('static', filename=f'generated/{generated_filename}'),
+                'generated_media_url': url_for('static', filename=f'generated/{generated_filename}'),
+                'media_type': generation_type,
                 'timestamp': datetime.now().isoformat()
             })
             
@@ -136,7 +152,10 @@ if __name__ == '__main__':
     try:
         Config.validate()
         app = create_app()
-        app.run(host='0.0.0.0', port=5000, debug=Config.DEBUG)
+        # Use Config-host/port so `.env` can override defaults
+        host = getattr(Config, 'FLASK_RUN_HOST', '0.0.0.0')
+        port = getattr(Config, 'FLASK_RUN_PORT', 5000)
+        app.run(host=host, port=port, debug=Config.DEBUG)
     except ValueError as e:
         print(f"Configuration Error: {e}")
         print("Please ensure all required environment variables are set in .env file")

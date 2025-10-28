@@ -58,6 +58,25 @@
                         </div>
                     </div>
 
+                    <div class="form-section">
+                        <h3>🎬 Generation Type</h3>
+                        <div class="input-group">
+                            <label>Choose what to generate:</label>
+                            <div class="radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="generation_type" value="image" checked>
+                                    <span>📸 Image</span>
+                                </label>
+                                {% if enable_sora %}
+                                <label class="radio-label">
+                                    <input type="radio" name="generation_type" value="video">
+                                    <span>🎥 Video (SORA)</span>
+                                </label>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
                     <button type="submit" id="generate-btn" class="btn-primary">
                         ✨ Generate TryScape
                     </button>
@@ -68,14 +87,18 @@
                 <div class="loading-content">
                     <div class="spinner"></div>
                     <p>Generating your TryScape...</p>
-                    <p class="loading-subtext">This may take 10-30 seconds</p>
+                    <p class="loading-subtext">This may take 60-120 seconds</p>
                 </div>
             </div>
 
             <div id="result" class="card result-card" style="display: none;">
                 <h2>Your TryScape</h2>
-                <div class="result-image-container">
-                    <img id="generated-image" src="" alt="Generated TryScape">
+                <div class="result-image-container" id="result-container">
+                    <img id="generated-image" src="" alt="Generated TryScape" style="display:none;">
+                    <video id="generated-video" controls style="display:none; max-width:100%; height:auto;">
+                        <source src="" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
                 </div>
                 <button id="new-generation-btn" class="btn-secondary">
                     Create Another TryScape
