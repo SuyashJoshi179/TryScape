@@ -1,11 +1,11 @@
 # TryScape
 
-**See yourself in any outfit, anywhere.** TryScape uses Azure OpenAI's DALL-E 3 to generate photorealistic images of you wearing specific outfits in any location you can imagine.
+**See yourself in any outfit, anywhere.** TryScape uses Azure OpenAI's gpt-image-1 to generate photorealistic images of you wearing specific outfits in any location you can imagine.
 
 ## Features
 
 - 🖼️ **Photo Upload**: Upload your photo and clothing images
-- 🎨 **AI-Powered Generation**: Uses Azure OpenAI DALL-E 3 for high-quality image generation
+- 🎨 **AI-Powered Image Editing**: Uses Azure OpenAI gpt-image-1 for high-quality image generation
 - 📍 **Any Location**: Visualize yourself at any location in the world
 - 👔 **Outfit Visualization**: See how different outfits look on you
 - 🌐 **Web Interface**: Easy-to-use web application
@@ -14,7 +14,7 @@
 
 - Python 3.8 or higher
 - Azure OpenAI Service subscription
-- DALL-E 3 deployment in Azure OpenAI
+- gpt-image-1 deployment in Azure OpenAI
 
 ## Setup Instructions
 
@@ -52,17 +52,17 @@ pip install -r requirements.txt
 
 2. Edit `.env` and add your Azure OpenAI credentials:
    ```
-   AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+   AZURE_OPENAI_ENDPOINT=https://tryscape.cognitiveservices.azure.com/
    AZURE_OPENAI_API_KEY=your-api-key-here
-   AZURE_OPENAI_API_VERSION=2024-02-15-preview
-   AZURE_OPENAI_DEPLOYMENT_NAME=dall-e-3
+   AZURE_OPENAI_API_VERSION=2025-04-01-preview
+   AZURE_OPENAI_DEPLOYMENT_NAME=gpt-image-1
    ```
 
 3. To get these credentials:
    - Go to [Azure Portal](https://portal.azure.com)
    - Navigate to your Azure OpenAI resource
    - Under "Keys and Endpoint", copy the endpoint and one of the keys
-   - Ensure you have a DALL-E 3 model deployed
+   - Ensure you have a gpt-image-1 model deployed
 
 ### 5. Run the Application
 
@@ -112,24 +112,26 @@ TryScape/
 
 ## API Endpoints
 
-### `POST /generate`
-Generate a TryScape image
+### POST /generate
+Generates a virtual try-on image by editing the user's photo with the selected clothing item.
 
-**Form Data:**
-- `user_image`: Image file (required)
-- `user_description`: Text description (optional)
-- `clothing_image`: Image file (optional)
-- `clothing_description`: Text description (required)
-- `location_description`: Text description (required)
+**Request:**
+- Content-Type: `multipart/form-data`
+- Parameters:
+  - `user_image`: User's photo (image file)
+  - `cloth_image`: Clothing item image (image file)
+  - `prompt`: Description of desired outfit transformation (text)
 
 **Response:**
 ```json
 {
   "success": true,
-  "generated_image_url": "/static/generated/generated_xxxxx.png",
-  "timestamp": "2024-01-01T12:00:00"
+  "generated_media_url": "/static/generated/generated_<id>.png",
+  "media_type": "image"
 }
 ```
+
+**Processing Time:** 60-120 seconds per request
 
 ### `GET /health`
 Health check endpoint
@@ -146,18 +148,16 @@ Health check endpoint
 ## Technology Stack
 
 - **Backend**: Python, Flask
-- **AI Service**: Azure OpenAI (DALL-E 3)
+- **AI Service**: Azure OpenAI (gpt-image-1)
 - **Image Processing**: Pillow
 - **Frontend**: HTML, CSS, JavaScript
 - **Configuration**: python-dotenv
 
 ## Cost Considerations
 
-Azure OpenAI DALL-E 3 is a paid service. Each image generation incurs a cost based on:
-- Image quality (standard vs HD)
-- Image size (1024x1024, 1024x1792, 1792x1024)
+Azure OpenAI gpt-image-1 is a paid service. Each image generation incurs a cost based on the API usage. Check [Azure OpenAI Pricing](https://azure.microsoft.com/en-us/pricing/details/cognitive-services/openai-service/) for current rates.
 
-Current implementation uses HD quality at 1024x1024. Check [Azure OpenAI Pricing](https://azure.microsoft.com/en-us/pricing/details/cognitive-services/openai-service/) for current rates.
+**Note**: Image generation with gpt-image-1 typically takes 60-120 seconds to complete.
 
 ## Limitations
 
@@ -174,7 +174,7 @@ Current implementation uses HD quality at 1024x1024. Check [Azure OpenAI Pricing
 
 ### "Failed to generate image" error
 - Verify your Azure OpenAI deployment name is correct
-- Ensure you have a DALL-E 3 deployment in your Azure OpenAI resource
+- Ensure you have a gpt-image-1 deployment in your Azure OpenAI resource
 - Check your API key has not expired
 - Verify you have sufficient quota/credits
 
@@ -197,5 +197,5 @@ For issues and questions, please open an issue on GitHub.
 ## Acknowledgments
 
 - Powered by Azure OpenAI Service
-- Uses DALL-E 3 for image generation
+- Uses gpt-image-1 for image editing and generation
 - Built with Flask web framework

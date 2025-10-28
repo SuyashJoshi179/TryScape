@@ -27,15 +27,17 @@ class AzureOpenAIService:
     
     def generate_tryscape_image(
         self,
+        user_image_path: str,
         user_description: str,
         clothing_description: str,
         location_description: str,
         style: str = "photorealistic"
     ) -> Optional[str]:
         """
-        Generate a photorealistic image using Azure OpenAI DALL-E 3.
+        Generate a photorealistic image using Azure OpenAI gpt-image-1 (image editing).
         
         Args:
+            user_image_path: Path to the user's uploaded image
             user_description: Description of the user's appearance
             clothing_description: Description of the clothing items
             location_description: Description of the location
@@ -44,7 +46,7 @@ class AzureOpenAIService:
         Returns:
             URL of the generated image or None if generation fails
         """
-        # Construct detailed prompt for DALL-E 3
+        # Construct detailed prompt for image editing
         prompt = self._construct_prompt(
             user_description,
             clothing_description,
@@ -69,58 +71,115 @@ class AzureOpenAIService:
                 return None
 
         try:
-            response = self.client.images.generate(
-                model=self.deployment_name,
-                prompt=prompt,
-                n=1,
-                size="1024x1024",
-                quality="hd",
-                style="natural"
-            )
-
-            # Log response summary for debugging
-            try:
-                # response.data may be a list-like of objects or dicts
-                first = response.data[0]
-            except Exception:
-                print("Image generation returned unexpected response format:", response)
-                return None
-
-            # Handle base64-encoded image payload (b64_json) returned by some APIs
-            b64 = getattr(first, 'b64_json', None)
-            if b64 is None and isinstance(first, dict):
-                b64 = first.get('b64_json')
-
-            if b64:
-                try:
-                    # Decode and save to generated folder and return its static URL
-                    image_bytes = base64.b64decode(b64)
-                    os.makedirs(Config.GENERATED_FOLDER, exist_ok=True)
-                    filename = f"generated_{uuid.uuid4().hex}.png"
-                    save_path = os.path.join(Config.GENERATED_FOLDER, filename)
-                    with open(save_path, 'wb') as f:
-                        f.write(image_bytes)
-                    host = getattr(Config, 'FLASK_RUN_HOST', '127.0.0.1')
-                    port = getattr(Config, 'FLASK_RUN_PORT', 5000)
-                    return f"http://{host}:{port}/static/generated/{filename}"
-                except Exception as e:
-                    print(f"Error saving base64 image: {e}")
+            # Create a mask for the entire image (edit everything)
+            # For image editing API, we need both the original image and a mask
+            mask_path = self._create_full_mask(user_image_path)
+            
+            # Use REST API since OpenAI SDK may not support image editing yet
+            endpoint = Config.AZURE_OPENAI_ENDPOINT.rstrip('/')
+            url = f"{endpoint}/openai/deployments/{self.deployment_name}/images/edits?api-version={Config.AZURE_OPENAI_API_VERSION}"
+            
+            headers = {
+                'Authorization': f'Bearer {Config.AZURE_OPENAI_API_KEY}'
+            }
+            
+            # Prepare files for multipart upload
+            with open(user_image_path, 'rb') as img_file, open(mask_path, 'rb') as mask_file:
+                files = {
+                    'image': ('image.png', img_file, 'image/png'),
+                    'mask': ('mask.png', mask_file, 'image/png'),
+                }
+                data = {
+                    'prompt': prompt
+                }
+                
+                print(f"Sending image edit request to gpt-image-1...")
+                print(f"URL: {url}")
+                print(f"Prompt: {prompt[:100]}...")
+                
+                response = requests.post(url, headers=headers, files=files, data=data, timeout=120)
+                
+                print(f"Response status: {response.status_code}")
+                
+                if response.status_code != 200:
+                    print(f"Error response: {response.text}")
                     return None
-
-            # Otherwise look for a URL in the response
-            url = getattr(first, 'url', None)
-            if url is None and isinstance(first, dict):
-                url = first.get('url')
-
-            if url:
-                return url
-
-            print("Image generation returned no usable image data:", first)
+                
+                result = response.json()
+            
+            # Clean up mask file
+            try:
+                os.remove(mask_path)
+            except Exception:
+                pass
+            
+            # Extract the base64 image from response
+            if 'data' in result and len(result['data']) > 0:
+                first_result = result['data'][0]
+                
+                # Handle base64-encoded image
+                if 'b64_json' in first_result:
+                    try:
+                        image_bytes = base64.b64decode(first_result['b64_json'])
+                        os.makedirs(Config.GENERATED_FOLDER, exist_ok=True)
+                        filename = f"generated_{uuid.uuid4().hex}.png"
+                        save_path = os.path.join(Config.GENERATED_FOLDER, filename)
+                        with open(save_path, 'wb') as f:
+                            f.write(image_bytes)
+                        host = getattr(Config, 'FLASK_RUN_HOST', '127.0.0.1')
+                        port = getattr(Config, 'FLASK_RUN_PORT', 5000)
+                        return f"http://{host}:{port}/static/generated/{filename}"
+                    except Exception as e:
+                        print(f"Error saving base64 image: {e}")
+                        return None
+                
+                # Handle URL response
+                if 'url' in first_result:
+                    return first_result['url']
+            
+            print("Image editing returned no usable image data:", result)
             return None
 
         except Exception as e:
             print(f"Error generating image: {e}")
+            import traceback
+            traceback.print_exc()
             return None
+    
+    def _create_full_mask(self, image_path: str) -> str:
+        """
+        Create a full white mask for the image (indicating entire image should be edited).
+        
+        Args:
+            image_path: Path to the source image
+            
+        Returns:
+            Path to the generated mask file
+        """
+        try:
+            # Open the source image to get dimensions
+            with Image.open(image_path) as img:
+                # Convert to RGBA if not already
+                if img.mode != 'RGBA':
+                    img = img.convert('RGBA')
+                
+                # Create a white mask (fully transparent in alpha = edit everywhere)
+                # For gpt-image-1, white areas indicate where to edit
+                mask = Image.new('RGBA', img.size, (255, 255, 255, 255))
+                
+                # Save mask
+                mask_filename = f"mask_{uuid.uuid4().hex}.png"
+                mask_path = os.path.join(Config.UPLOAD_FOLDER, mask_filename)
+                mask.save(mask_path, 'PNG')
+                
+                return mask_path
+        except Exception as e:
+            print(f"Error creating mask: {e}")
+            # Return a default mask if creation fails
+            mask = Image.new('RGBA', (1024, 1024), (255, 255, 255, 255))
+            mask_path = os.path.join(Config.UPLOAD_FOLDER, f"mask_default_{uuid.uuid4().hex}.png")
+            mask.save(mask_path, 'PNG')
+            return mask_path
     
     def _construct_prompt(
         self,

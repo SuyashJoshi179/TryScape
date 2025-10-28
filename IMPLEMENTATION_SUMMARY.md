@@ -1,7 +1,7 @@
 # TryScape Implementation Summary
 
 ## Project Overview
-TryScape is a web-based application that uses Azure OpenAI's DALL-E 3 to generate photorealistic images of users wearing specific outfits at various locations.
+TryScape is a web-based application that uses Azure OpenAI's gpt-image-1 model to generate photorealistic images of users wearing specific outfits at various locations through advanced image editing capabilities.
 
 ## Implementation Complete ✓
 
@@ -21,10 +21,13 @@ TryScape is a web-based application that uses Azure OpenAI's DALL-E 3 to generat
    - Image processing utilities
 
 3. **Azure OpenAI Integration**
-   - DALL-E 3 integration for image generation
+   - gpt-image-1 integration for image editing
+   - REST API implementation with multipart form data
+   - Automatic mask generation for image editing
    - Prompt engineering for photorealistic results
    - Image download and storage
    - Error handling and retry logic
+   - Extended timeout support (120s) for long processing times
 
 4. **Image Processing**
    - Image validation
@@ -70,14 +73,14 @@ TryScape/
 ```
 
 ### Technology Stack
-- **Backend**: Python 3.8+, Flask 3.0.0
-- **AI Service**: Azure OpenAI (DALL-E 3)
+- **Backend**: Python 3.11+, Flask 3.0.0
+- **AI Service**: Azure OpenAI (gpt-image-1)
 - **Image Processing**: Pillow >=10.3.0
 - **Frontend**: HTML5, CSS3, JavaScript (ES6+)
 - **Configuration**: python-dotenv 1.0.0
-- **HTTP Client**: requests 2.31.0
+- **HTTP Client**: requests 2.31.0, httpx 0.28.1
 - **Azure SDK**: azure-identity 1.15.0
-- **OpenAI SDK**: openai 1.3.0
+- **OpenAI SDK**: openai 2.6.1
 
 ### Security Measures
 1. **Dependency Security**
@@ -150,15 +153,16 @@ TryScape/
 1. User uploads their photo and provides descriptions
 2. Frontend sends multipart form data to backend
 3. Backend validates and processes uploaded images
-4. Azure OpenAI service generates prompt from descriptions
-5. DALL-E 3 creates photorealistic image
-6. Generated image is downloaded and displayed to user
+4. Backend generates a white mask matching the uploaded image dimensions
+5. Azure OpenAI gpt-image-1 service receives the image, mask, and prompt
+6. gpt-image-1 edits the image to apply the desired outfit and location (60-120 seconds)
+7. Generated image is downloaded, decoded from base64, and displayed to user
 
 ### Key Features
 - ✅ User photo upload
 - ✅ Clothing image upload (optional)
 - ✅ Text descriptions for user, clothing, and location
-- ✅ Photorealistic image generation via DALL-E 3
+- ✅ Photorealistic image generation via gpt-image-1
 - ✅ Modern, responsive web interface
 - ✅ Real-time feedback and loading states
 - ✅ Error handling and validation
@@ -189,23 +193,24 @@ These could be added in future iterations:
 - Mobile app
 
 ### Known Limitations
-1. Requires Azure OpenAI subscription with DALL-E 3 access
-2. Image generation takes 15-45 seconds
+1. Requires Azure OpenAI subscription with gpt-image-1 access
+2. Image generation takes 60-120 seconds
 3. Generated images may not be 100% accurate
 4. Cost per image generation (Azure OpenAI pricing)
 5. Internet connection required
 6. File size limit (16MB)
+7. Requires user photo upload (cannot generate from text alone)
 
 ### Cost Considerations
 - Each image generation uses Azure OpenAI credits
-- Current configuration uses HD quality at 1024x1024
+- gpt-image-1 processing time is longer than previous models (60-120 seconds)
 - Check Azure OpenAI pricing for current rates
 - Recommend setting up budget alerts in Azure Portal
 
 ### Support & Resources
 - GitHub Repository: https://github.com/SuyashJoshi179/TryScape
 - Azure OpenAI Documentation: https://learn.microsoft.com/azure/ai-services/openai/
-- DALL-E 3 Documentation: https://platform.openai.com/docs/guides/images
+- Azure OpenAI API Reference: https://learn.microsoft.com/azure/ai-services/openai/reference
 
 ### License
 MIT License - See LICENSE file for details
@@ -216,7 +221,7 @@ MIT License - See LICENSE file for details
 
 - [x] Set up Python-based project structure
 - [x] Create backend API for image generation
-- [x] Implement Azure OpenAI integration using DALL-E 3
+- [x] Implement Azure OpenAI integration using gpt-image-1
 - [x] Create image processing utilities
 - [x] Add configuration management for Azure credentials
 - [x] Create web interface for user interaction

@@ -6,10 +6,10 @@ Get up and running with TryScape in just a few minutes!
 
 Before you begin, ensure you have:
 
-- [ ] Python 3.8 or higher installed
+- [ ] Python 3.11 or higher installed
 - [ ] An Azure account
 - [ ] Azure OpenAI Service created
-- [ ] DALL-E 3 model deployed in Azure OpenAI
+- [ ] gpt-image-1 model deployed in Azure OpenAI
 
 ## 5-Minute Setup
 
@@ -57,9 +57,10 @@ pip install -r requirements.txt
 
 3. **Edit .env file** with your credentials:
    ```
-   AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+   AZURE_OPENAI_ENDPOINT=https://your-resource.cognitiveservices.azure.com/
    AZURE_OPENAI_API_KEY=your-api-key-here
-   AZURE_OPENAI_DEPLOYMENT_NAME=dall-e-3
+   AZURE_OPENAI_API_VERSION=2025-04-01-preview
+   AZURE_OPENAI_DEPLOYMENT_NAME=gpt-image-1
    ```
 
 ### Step 4: Verify Installation
@@ -89,7 +90,7 @@ Open your browser to `http://localhost:5000`
    - Clothing: "casual blue jeans and white t-shirt"
    - Location: "Central Park in New York with fall colors"
 
-4. **Click "Generate TryScape"** and wait ~20 seconds
+4. **Click "Generate TryScape"** and wait ~60-120 seconds
 
 5. **View your result!** 🎉
 
@@ -105,7 +106,7 @@ Open your browser to `http://localhost:5000`
 → Make sure you copied `.env.example` to `.env` and filled in your Azure credentials
 
 ### "Failed to generate image"
-→ Verify your deployment name matches your Azure OpenAI DALL-E 3 deployment
+→ Verify your deployment name matches your Azure OpenAI gpt-image-1 deployment
 
 ### Dependencies won't install
 → Make sure you're using Python 3.8+ and have activated your virtual environment
@@ -132,11 +133,11 @@ If you don't have Azure OpenAI set up yet:
    - Click "Create" and follow the wizard
    - Choose a region and pricing tier
 
-4. **Deploy DALL-E 3 Model**:
+4. **Deploy gpt-image-1 Model**:
    - In your Azure OpenAI resource, go to "Model deployments"
    - Click "Create new deployment"
-   - Select "dall-e-3" model
-   - Give it a name (e.g., "dall-e-3")
+   - Select "gpt-image-1" model
+   - Give it a name (e.g., "gpt-image-1")
    - Click "Create"
 
 5. **Get Credentials**:

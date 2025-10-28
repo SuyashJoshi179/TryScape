@@ -22,7 +22,7 @@ Building TryScape was a profound learning experience that touched multiple domai
 
 ### 1. **The Power (and Limitations) of Generative AI**
 
-Working with Azure OpenAI's DALL-E 3 taught me that AI image generation is both magical and nuanced:
+Working with Azure OpenAI's gpt-image-1 model taught me that AI image editing is both powerful and nuanced:
 
 **Prompt Engineering is an Art**: The difference between a mediocre and stunning result often lies in prompt construction. I learned to:
 - Balance specificity with creative freedom
@@ -65,7 +65,7 @@ const response = await fetch('/generate', {
 ```
 
 I learned that UX matters immensely when dealing with AI-generated content:
-- Users need clear loading indicators (15-30 second wait times)
+- Users need clear loading indicators (60-120 second wait times for gpt-image-1)
 - Error messages must be actionable, not technical
 - Progressive disclosure keeps the interface clean
 
@@ -103,10 +103,9 @@ Azure OpenAI integration taught me:
 - Monitor usage through Azure Portal
 - Set up budget alerts
 
-The cost model follows: $C = Q \times S \times N$ where:
+The cost model for gpt-image-1 follows: $C = T \times N$ where:
 - $C$ = Total cost
-- $Q$ = Quality factor (standard vs HD)
-- $S$ = Size multiplier (resolution-dependent)
+- $T$ = Time-based cost (longer processing ~60-120s)
 - $N$ = Number of generations
 
 ### 4. **Security Best Practices**
@@ -182,8 +181,8 @@ TryScape follows a classic three-tier architecture:
 ┌─────────────────────────────────────────────────────┐
 │                   Service Layer                      │
 │              (Azure OpenAI + Utilities)              │
-│  - AI Image Generation                               │
-│  - Image Processing                                  │
+│  - AI Image Editing (gpt-image-1)                    │
+│  - Image Processing & Mask Generation                │
 │  - Storage Management                                │
 └─────────────────────────────────────────────────────┘
 ```
@@ -215,24 +214,26 @@ TryScape follows a classic three-tier architecture:
 - Create configuration management
 - Establish Azure OpenAI connection
 
-**Key Challenge**: Getting the OpenAI SDK to work with Azure endpoints required understanding the subtle differences in authentication:
+**Key Challenge**: Migrating from the OpenAI SDK to REST API for gpt-image-1 required understanding Azure's image editing endpoints:
 
 ```python
-# Azure-specific initialization
-client = AzureOpenAI(
-    api_version="2024-02-15-preview",  # Azure-specific
-    azure_endpoint=AZURE_OPENAI_ENDPOINT,
-    api_key=AZURE_OPENAI_API_KEY,
-)
+# Azure gpt-image-1 REST API approach
+url = f"{Config.AZURE_OPENAI_ENDPOINT}/openai/deployments/{Config.AZURE_OPENAI_DEPLOYMENT_NAME}/images/edits"
+headers = {'Authorization': f'Bearer {Config.AZURE_OPENAI_API_KEY}'}
+files = {
+    'image': (filename, open(user_image_path, 'rb'), 'image/png'),
+    'mask': ('mask.png', mask_bytes, 'image/png')
+}
+response = requests.post(url, headers=headers, files=files, data=data, timeout=120)
 ```
 
 #### Phase 2: Core Functionality 
 - Implemented file upload handling
-- Built image processing pipeline
-- Developed prompt engineering
-- Created generation endpoint
+- Built image processing and mask generation pipeline
+- Developed prompt engineering for image editing
+- Created generation endpoint with REST API integration
 
-**Key Insight**: Image preprocessing significantly impacts results. Resizing to optimal dimensions ($1024 \times 1024$) improved generation speed and quality.
+**Key Insight**: For gpt-image-1, generating appropriate masks and preprocessing images is critical. The model requires both a source image and a mask to indicate edit areas, significantly impacting the quality of the edited output.
 
 #### Phase 3: User Interface 
 - Designed responsive UI
@@ -248,7 +249,7 @@ client = AzureOpenAI(
 - Enhanced error messages
 - Optimized performance
 
-**Technical Achievement**: Built a flexible architecture that supports both synchronous (DALL-E) and asynchronous (SORA) generation:
+**Technical Achievement**: Built a flexible architecture that supports both synchronous (gpt-image-1) and asynchronous (SORA) generation:
 
 ```python
 if generation_type == 'video':
@@ -283,31 +284,55 @@ This allows runtime configuration without code changes.
 
 ## 🚧 Challenges I Faced
 
-### Challenge 1: **DALL-E Deployment Issues**
+### Challenge 1: **Azure OpenAI Model Migration**
 
-**Problem**: Initial attempts to generate images failed with cryptic `404 DeploymentNotFound` errors.
+**Problem**: Initial implementation used DALL-E 3 for image generation, but requirements changed to use the gpt-image-1 model instead.
 
 **Investigation**: 
+The two models have fundamentally different approaches:
+- **DALL-E 3**: Text-to-image generation (creates images from descriptions)
+- **gpt-image-1**: Image editing (modifies existing images based on prompts)
+
+This required a complete API pattern change.
+
+**Root Cause**: Different API endpoints and request formats:
+- DALL-E used SDK: `client.images.generate()`
+- gpt-image-1 uses REST API: POST to `/openai/deployments/{deployment}/images/edits`
+
+**Solution**: Complete rewrite of the image generation service:
+
 ```python
-# Error log showed:
-Error code: 404 - {'error': {'code': 'DeploymentNotFound', 
-    'message': 'The API deployment for this resource does not exist...'}}
+# New approach: REST API with multipart form data
+headers = {
+    'Authorization': f'Bearer {Config.AZURE_OPENAI_API_KEY}'
+}
+
+# Create mask for editing
+mask_image = self._create_full_mask(user_image_path)
+
+files = {
+    'image': (os.path.basename(user_image_path), open(user_image_path, 'rb'), 'image/png'),
+    'mask': ('mask.png', mask_bytes, 'image/png')
+}
+
+data = {
+    'prompt': prompt,
+    'n': 1
+}
+
+response = requests.post(url, headers=headers, files=files, data=data, timeout=120)
 ```
 
-**Root Cause**: Mismatch between deployment name in code (`dall-e-3`) and actual Azure deployment name.
+Configuration changes:
+- Endpoint: `https://tryscape.cognitiveservices.azure.com/` (was `.openai.azure.com`)
+- API Version: `2025-04-01-preview` (was `2024-02-15-preview`)
+- Deployment: `gpt-image-1` (was `dall-e-3`)
 
-**Solution**: Implemented better error logging and configuration validation:
-```python
-@staticmethod
-def validate():
-    """Validate that required configuration is present."""
-    required_vars = ['AZURE_OPENAI_ENDPOINT', 'AZURE_OPENAI_API_KEY']
-    missing = [var for var in required_vars if not os.getenv(var)]
-    if missing:
-        raise ValueError(f"Missing required environment variables: {', '.join(missing)}")
-```
-
-**Lesson**: Always validate configuration at startup, not first use.
+**Lesson**: API migrations require thorough understanding of both the old and new patterns. The gpt-image-1 model requires:
+1. User image upload (cannot generate from text alone)
+2. Mask generation to indicate edit areas
+3. Longer timeout (60-120 seconds vs 15-30 seconds)
+4. Different response format (base64-encoded in `b64_json` field)
 
 ### Challenge 2: **Python Environment Compatibility**
 
@@ -334,9 +359,9 @@ $$\forall i,j: \text{compatible}(v_i, v_j) = \text{true}$$
 
 ### Challenge 3: **SORA API Integration**
 
-**Problem**: SORA uses a completely different API pattern than DALL-E - it's asynchronous and job-based.
+**Problem**: SORA uses a completely different API pattern than gpt-image-1 - it's asynchronous and job-based.
 
-**Expected Pattern** (DALL-E):
+**Expected Pattern** (gpt-image-1):
 ```python
 response = client.images.generate(...)
 url = response.data[0].url  # Immediate result
@@ -415,9 +440,9 @@ DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
 
 ### Challenge 6: **Asynchronous Wait Times**
 
-**Problem**: Video generation takes 1-5 minutes, but HTTP requests timeout after 30 seconds by default.
+**Problem**: Video generation takes 1-5 minutes, and gpt-image-1 image editing takes 60-120 seconds, but HTTP requests timeout after 30 seconds by default.
 
-**Constraint**: Can't make the user wait 5 minutes with a frozen browser.
+**Constraint**: Can't make the user wait 2-5 minutes with a frozen browser.
 
 **Options Considered**:
 1. **WebSockets**: Real-time bidirectional communication
@@ -432,8 +457,12 @@ DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
    - Pros: Decoupled, scalable
    - Cons: More complex frontend logic
 
-**Solution Chosen**: Extended timeout for now (330 seconds), with plans to implement job queue in future:
+**Solution Chosen**: Extended timeout to 120 seconds for gpt-image-1 and 330 seconds for SORA, with plans to implement job queue in future:
 ```python
+# For gpt-image-1
+response = requests.post(url, headers=headers, files=files, data=data, timeout=120)
+
+# For SORA  
 r = requests.post(url, files=files, data=data, timeout=330)
 ```
 
@@ -488,25 +517,29 @@ User Input → Validation → Processing → API Call → Response
 
 Each layer handles errors it can address and passes others up.
 
-### 3. **Progressive Image Processing**
+### 3. **Progressive Image Processing Pipeline**
 
-Optimized image pipeline:
+Optimized image pipeline for gpt-image-1 editing:
 
 ```python
 # Original image (could be 10MB+)
     ↓
 # Validation (format, size, content)
     ↓
-# Resize (optimal dimensions for AI)
+# Resize (optimal dimensions for AI editing)
     ↓
-# Upload to processing
+# Generate full white mask (RGBA)
     ↓
-# Generate description
+# Prepare multipart form data
     ↓
-# AI generation
+# REST API call to gpt-image-1 (60-120s)
+    ↓
+# Decode base64 response
+    ↓
+# Save and return edited image
 ```
 
-This reduced processing time by ~35% compared to sending raw images.
+This structured approach ensures reliable image editing with proper error handling at each stage.
 
 ### 4. **Feature Flag System**
 
@@ -528,13 +561,32 @@ if generation_type == 'video' and not Config.ENABLE_SORA:
 
 This allows controlled rollout of experimental features.
 
+### 5. **Automatic Mask Generation for Image Editing**
+
+Implemented intelligent mask generation for gpt-image-1's editing API:
+
+```python
+def _create_full_mask(self, image_path):
+    """Create a full white mask matching the image dimensions."""
+    with Image.open(image_path) as img:
+        # Convert to RGBA if needed
+        if img.mode != 'RGBA':
+            img = img.convert('RGBA')
+        
+        # Create white mask (255, 255, 255, 255)
+        mask = Image.new('RGBA', img.size, (255, 255, 255, 255))
+        return mask
+```
+
+This automatic mask generation enables the image editing API to work seamlessly, allowing the AI to edit the entire image based on the prompt.
+
 ---
 
 ## 📊 What I Would Do Differently
 
 ### 1. **Start with Job Queue Architecture**
 
-For any AI service with >10s latency, implement asynchronous job processing from day one:
+For any AI service with >60s latency (like gpt-image-1's 60-120s processing time), implement asynchronous job processing from day one:
 
 ```python
 # Better architecture
@@ -632,7 +684,7 @@ TryScape democratizes fashion visualization by:
 - Add load balancing
 
 **AI Improvements**:
-- Fine-tune custom DALL-E models on fashion data
+- Fine-tune custom gpt-image models on fashion data
 - Implement style transfer for more consistent results
 - Add face preservation techniques for better likeness
 
@@ -661,13 +713,13 @@ The technical challenges - compatibility issues, API quirks, async complexity - 
 ### Technologies Used
 - **Flask** 3.0.0 - Lightweight Python web framework
 - **Azure OpenAI Service** - Enterprise-grade AI API
-- **DALL-E 3** - State-of-the-art image generation
+- **gpt-image-1** - Advanced image editing model
 - **Pillow** - Python imaging library
 - **Python 3.11** - Modern Python with type hints
 
 ### Learning Resources
 - [Azure OpenAI Documentation](https://learn.microsoft.com/azure/ai-services/openai/)
-- [DALL-E 3 Research Paper](https://cdn.openai.com/papers/dall-e-3.pdf)
+- [Azure OpenAI API Reference](https://learn.microsoft.com/azure/ai-services/openai/reference)
 - [Flask Documentation](https://flask.palletsprojects.com/)
 - [Prompt Engineering Guide](https://www.promptingguide.ai/)
 

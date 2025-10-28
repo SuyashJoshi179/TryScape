@@ -106,6 +106,7 @@ def create_app():
                 file_extension = 'mp4'
             else:
                 media_url = azure_service.generate_tryscape_image(
+                    user_image_path=user_image_path,  # Pass the uploaded image path
                     user_description=user_description,
                     clothing_description=clothing_description,
                     location_description=location_description
