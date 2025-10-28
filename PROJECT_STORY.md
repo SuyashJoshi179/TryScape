@@ -244,19 +244,11 @@ response = requests.post(url, headers=headers, files=files, data=data, timeout=1
 **Design Philosophy**: Progressive disclosure - show complexity only when needed. The form reveals itself in logical sections.
 
 #### Phase 4: Enhancement & Polish 
-- Added video generation support (SORA integration)
-- Implemented feature flags (`ENABLE_SORA`)
 - Enhanced error messages
 - Optimized performance
+- Improved image processing pipeline
 
-**Technical Achievement**: Built a flexible architecture that supports both synchronous (gpt-image-1) and asynchronous (SORA) generation:
-
-```python
-if generation_type == 'video':
-    media_url = azure_service.generate_tryscape_video(...)
-else:
-    media_url = azure_service.generate_tryscape_image(...)
-```
+**Technical Achievement**: Built a flexible architecture for image generation with robust error handling and efficient processing workflows.
 
 #### Phase 5: Documentation & Testing (Days 11-12)
 - Wrote comprehensive documentation
@@ -357,52 +349,7 @@ $$\forall i,j: \text{compatible}(v_i, v_j) = \text{true}$$
 
 **Lesson**: Always specify exact versions in production and test across Python versions.
 
-### Challenge 3: **SORA API Integration**
-
-**Problem**: SORA uses a completely different API pattern than gpt-image-1 - it's asynchronous and job-based.
-
-**Expected Pattern** (gpt-image-1):
-```python
-response = client.images.generate(...)
-url = response.data[0].url  # Immediate result
-```
-
-**Actual Pattern** (SORA):
-```python
-# Step 1: Create job
-job = create_video_job(...)
-
-# Step 2: Poll for completion
-while job.status != 'succeeded':
-    time.sleep(5)
-    job = get_job_status(job.id)
-
-# Step 3: Retrieve result
-video_url = job.output.url
-```
-
-**Challenge**: The OpenAI Python SDK doesn't have native SORA support - I had to use raw REST API calls.
-
-**Solution**: Implemented custom REST client:
-```python
-headers = {'api-key': Config.AZURE_OPENAI_API_KEY}
-create_url = f"{endpoint}/openai/v1/video/generations/jobs?api-version=preview"
-response = requests.post(create_url, headers=headers, json=payload)
-```
-
-**Complication**: SORA returns cryptic errors like `"Resolution NonexNone is not supported"` when the `size` parameter format is incorrect.
-
-**Trial and Error Process**:
-- Tried `"resolution": "1280x720"` ❌
-- Tried `"size": "1280x720"` ❌  
-- Tried `"size": [1280, 720]` ❌
-- Discovered deployment didn't exist ✓
-
-**Outcome**: Implemented feature flag to disable SORA by default since it wasn't reliably available.
-
-**Lesson**: When integrating bleeding-edge APIs, build graceful degradation from the start.
-
-### Challenge 4: **Port Conflicts**
+### Challenge 3: **Port Conflicts**
 
 **Problem**: Default port 5000 was already in use by macOS AirPlay Receiver.
 
@@ -419,7 +366,7 @@ FLASK_RUN_PORT = int(os.getenv('FLASK_RUN_PORT', '5000'))
 
 **Lesson**: Never hardcode configuration values, especially for deployment-specific settings.
 
-### Challenge 5: **Debug vs Production Behavior**
+### Challenge 4: **Debug vs Production Behavior**
 
 **Problem**: Application behaved differently in debug mode - it was returning mock placeholder images instead of calling Azure API.
 
@@ -438,11 +385,11 @@ DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
 
 **Lesson**: Environment variables are always strings - never forget to parse them correctly.
 
-### Challenge 6: **Asynchronous Wait Times**
+### Challenge 5: **Asynchronous Wait Times**
 
-**Problem**: Video generation takes 1-5 minutes, and gpt-image-1 image editing takes 60-120 seconds, but HTTP requests timeout after 30 seconds by default.
+**Problem**: gpt-image-1 image editing takes 60-120 seconds, but HTTP requests timeout after 30 seconds by default.
 
-**Constraint**: Can't make the user wait 2-5 minutes with a frozen browser.
+**Constraint**: Can't make the user wait 2 minutes with a frozen browser.
 
 **Options Considered**:
 1. **WebSockets**: Real-time bidirectional communication
@@ -457,13 +404,10 @@ DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
    - Pros: Decoupled, scalable
    - Cons: More complex frontend logic
 
-**Solution Chosen**: Extended timeout to 120 seconds for gpt-image-1 and 330 seconds for SORA, with plans to implement job queue in future:
+**Solution Chosen**: Extended timeout to 120 seconds for gpt-image-1, with plans to implement job queue in future:
 ```python
 # For gpt-image-1
 response = requests.post(url, headers=headers, files=files, data=data, timeout=120)
-
-# For SORA  
-r = requests.post(url, files=files, data=data, timeout=330)
 ```
 
 **Future Enhancement**: 
@@ -482,27 +426,17 @@ def check_status(job_id):
 
 ## 🎯 Key Technical Achievements
 
-### 1. **Flexible Media Generation Architecture**
+### 1. **Robust Image Generation Architecture**
 
-Built a polymorphic system that handles both images and videos:
+Built a reliable system for AI-powered image editing:
 
 ```python
-# Backend abstraction
-def generate_media(type, descriptions):
-    if type == 'video':
-        return generate_tryscape_video(descriptions)
-    else:
-        return generate_tryscape_image(descriptions)
-
-# Frontend abstraction
-if (data.media_type === 'video') {
-    generatedVideo.src = data.generated_media_url;
-} else {
-    generatedImage.src = data.generated_media_url;
-}
+# Image generation with proper error handling
+def generate_media(descriptions):
+    return generate_tryscape_image(descriptions)
 ```
 
-This demonstrates the **Open/Closed Principle**: open for extension (add new media types), closed for modification (existing code doesn't change).
+This demonstrates clean architecture principles with proper separation of concerns and extensibility for future enhancements.
 
 ### 2. **Robust Error Handling Pipeline**
 
@@ -541,25 +475,17 @@ Optimized image pipeline for gpt-image-1 editing:
 
 This structured approach ensures reliable image editing with proper error handling at each stage.
 
-### 4. **Feature Flag System**
+### 4. **Clean Configuration Management**
 
-Implemented clean feature flagging:
+Implemented clean configuration system:
 
 ```python
 # Config
-ENABLE_SORA = os.getenv('ENABLE_SORA', 'false').lower() == 'true'
-
-# Backend
-if generation_type == 'video' and not Config.ENABLE_SORA:
-    return jsonify({'error': 'Video generation is not enabled'}), 400
-
-# Frontend (Jinja2)
-{% if enable_sora %}
-    <option value="video">Video (SORA)</option>
-{% endif %}
+DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+FLASK_RUN_PORT = int(os.getenv('FLASK_RUN_PORT', '5000'))
 ```
 
-This allows controlled rollout of experimental features.
+This allows flexible deployment across different environments.
 
 ### 5. **Automatic Mask Generation for Image Editing**
 
@@ -665,10 +591,10 @@ TryScape democratizes fashion visualization by:
 4. Style recommendations based on AI analysis
 
 **Long-term** (1-2 years):
-1. Real-time video generation (as SORA matures)
-2. Multi-person scenes (outfit coordination)
-3. Climate-aware recommendations
-4. Sustainability scoring for outfit choices
+1. Multi-person scenes (outfit coordination)
+2. Climate-aware recommendations
+3. Sustainability scoring for outfit choices
+4. Advanced AI features for better personalization
 
 ### Technical Roadmap
 
