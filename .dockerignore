@@ -1,0 +1,52 @@
+# Ignore virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+tryscape_server.log
+nohup.out
+
+# Uploaded and generated files (these will be in persistent storage in Azure)
+app/static/uploads/*
+app/static/generated/*
+!app/static/uploads/.gitkeep
+!app/static/generated/.gitkeep
+
+# Test images in root
+*.jpeg
+*.jpg
+*.png
+*.gif
+
+# Azure
+.azure/
+
+# Git
+.git/
+.gitignore
