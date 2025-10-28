@@ -8,10 +8,13 @@ if __name__ == '__main__':
     try:
         # Validate configuration
         Config.validate()
-        
+
         # Create and run app
         app = create_app()
-        app.run(host='0.0.0.0', port=5000, debug=Config.DEBUG)
+        # Respect optional env/config values for host/port
+        host = getattr(Config, 'FLASK_RUN_HOST', '0.0.0.0')
+        port = getattr(Config, 'FLASK_RUN_PORT', 5000)
+        app.run(host=host, port=port, debug=Config.DEBUG)
         
     except ValueError as e:
         print(f"Configuration Error: {e}")

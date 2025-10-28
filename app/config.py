@@ -17,10 +17,20 @@ class Config:
     AZURE_OPENAI_API_KEY = os.getenv('AZURE_OPENAI_API_KEY')
     AZURE_OPENAI_API_VERSION = os.getenv('AZURE_OPENAI_API_VERSION', '2024-02-15-preview')
     AZURE_OPENAI_DEPLOYMENT_NAME = os.getenv('AZURE_OPENAI_DEPLOYMENT_NAME', 'dall-e-3')
+    AZURE_OPENAI_SORA_DEPLOYMENT_NAME = os.getenv('AZURE_OPENAI_SORA_DEPLOYMENT_NAME', 'sora')
+    
+    # Feature Flags
+    ENABLE_SORA = os.getenv('ENABLE_SORA', 'false').lower() == 'true'
     
     # Flask Configuration
     SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'dev-secret-key-change-in-production')
     DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+    # Host/Port for local development server
+    FLASK_RUN_HOST = os.getenv('FLASK_RUN_HOST', '0.0.0.0')
+    try:
+        FLASK_RUN_PORT = int(os.getenv('FLASK_RUN_PORT', '5000'))
+    except ValueError:
+        FLASK_RUN_PORT = 5000
     
     # Upload Configuration
     UPLOAD_FOLDER = 'app/static/uploads'
